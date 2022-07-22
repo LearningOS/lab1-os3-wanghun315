@@ -17,9 +17,11 @@ mod task;
 use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
+use crate::timer::get_time;
 use lazy_static::*;
 pub use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus, TaskInfo, TimeVal};
+
 
 pub use context::TaskContext;
 
@@ -65,6 +67,7 @@ lazy_static! {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
                     current_task: 0,
+                    TaskInfo::new(),
                 })
             },
         }
@@ -80,6 +83,10 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
         task0.task_status = TaskStatus::Running;
+        //初始化任务变量
+        task0.task_info.time = 0;
+        task0.task_info.status = task0.task_status;
+
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         drop(inner);
         let mut _unused = TaskContext::zero_init();
@@ -95,6 +102,8 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
         inner.tasks[current].task_status = TaskStatus::Ready;
+
+
     }
 
     /// Change the status of current `Running` task into `Exited`.
@@ -137,6 +146,11 @@ impl TaskManager {
     }
 
     // LAB1: Try to implement your function to update or get task info!
+    fn find_running_task(&self) -> TaskInfo{
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].task_info
+    }
 }
 
 /// Run the first task in task list.
@@ -174,3 +188,6 @@ pub fn exit_current_and_run_next() {
 
 // LAB1: Public functions implemented here provide interfaces.
 // You may use TASK_MANAGER member functions to handle requests.
+pub fn find_running_task() -> TaskInfo{
+    find_running_task
+}
