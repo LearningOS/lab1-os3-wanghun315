@@ -1,5 +1,5 @@
 //! Process management syscalls
-use crate::task::{exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, TaskInfo, TimeVal};
+use crate::task::{exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, TaskInfo, TimeVal, find_running_task, setting_task_info};
 use crate::timer::get_time_us;
 use crate::timer::get_time;
 
@@ -46,10 +46,9 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
 }
 
 /// YOUR JOB: Finish sys_task_info to pass testcases
+pub fn sys_task(syscall_id: usize) -> usize{
+    setting_task_info(syscall_id)
+}
 pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
-    //unsafe{
-    //    (*ti).syscall_times[syscall_id] += 1;
-    //    (*ti).time = get_time();
-    //}
-    0
+    find_running_task(ti)
 }

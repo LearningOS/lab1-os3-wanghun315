@@ -3,8 +3,8 @@
 use super::TaskContext;
 use crate::config::MAX_SYSCALL_NUM;
 
-#[derive(Copy, Clone)]
 /// task control block structure
+#[derive(Copy, Clone)]
 pub struct TaskControlBlock {
     pub task_status: TaskStatus,
     pub task_cx: TaskContext,
@@ -28,8 +28,9 @@ pub struct TimeVal {
     pub usec: usize,
 }
 
+#[derive(Copy, Clone)]
 pub struct TaskInfo {
-    status: TaskStatus,
-    syscall_times: [u32; MAX_SYSCALL_NUM],
-    time: usize,
+    pub status: TaskStatus,
+    pub syscall_times: [u32; MAX_SYSCALL_NUM],
+    pub time: usize,
 }

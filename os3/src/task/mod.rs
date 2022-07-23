@@ -56,6 +56,11 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            task_info: TaskInfo{
+                status : TaskStatus::UnInit,
+                syscall_times : [0; MAX_SYSCALL_NUM],
+                time : 0 as usize,
+            },
         }; MAX_APP_NUM];
         for (i, t) in tasks.iter_mut().enumerate().take(num_app) {
             t.task_cx = TaskContext::goto_restore(init_app_cx(i));
@@ -67,7 +72,6 @@ lazy_static! {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
                     current_task: 0,
-                    TaskInfo::new(),
                 })
             },
         }
@@ -102,8 +106,7 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
         inner.tasks[current].task_status = TaskStatus::Ready;
-
-
+        inner.tasks[current].task_info.status = TaskStatus::Ready;
     }
 
     /// Change the status of current `Running` task into `Exited`.
@@ -111,6 +114,7 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
         inner.tasks[current].task_status = TaskStatus::Exited;
+        inner.tasks[current].task_info.status = TaskStatus::Exited;
     }
 
     /// Find next task to run and return task id.
@@ -131,6 +135,7 @@ impl TaskManager {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
             inner.tasks[next].task_status = TaskStatus::Running;
+            inner.tasks[next].task_info.status = TaskStatus::Running;
             inner.current_task = next;
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
@@ -146,10 +151,23 @@ impl TaskManager {
     }
 
     // LAB1: Try to implement your function to update or get task info!
-    fn find_running_task(&self) -> TaskInfo{
+    fn find_running_task(&self, ti: *mut TaskInfo) -> isize {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
-        inner.tasks[current].task_info
+        // if inner.tasks[current].task_info.time == (*ti).time{
+        //     0
+        // }else{
+        //     -1
+        // }
+        0
+    }
+
+    fn setting_task_info(&self, syscall_id: usize) -> usize{
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].task_info.syscall_times[syscall_id] += 1 as u32;
+        inner.tasks[current].task_info.time = get_time();
+        syscall_id
     }
 }
 
@@ -188,6 +206,9 @@ pub fn exit_current_and_run_next() {
 
 // LAB1: Public functions implemented here provide interfaces.
 // You may use TASK_MANAGER member functions to handle requests.
-pub fn find_running_task() -> TaskInfo{
-    find_running_task
+pub fn find_running_task(ti: *mut TaskInfo) -> isize {
+    TASK_MANAGER.find_running_task(ti)
+}
+pub fn setting_task_info(syscall_id: usize) -> usize{
+    TASK_MANAGER.setting_task_info(syscall_id)
 }
